@@ -1,21 +1,56 @@
-version: '3'
+version: "3.1"
+
+networks:
+  factory:
 
 services:
-###> doctrine/doctrine-bundle ###
-  database:
-    image: postgres:${POSTGRES_VERSION:-13}-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-app}
-      # You should definitely change the password in production
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeMe}
-      POSTGRES_USER: ${POSTGRES_USER:-symfony}
+  mysqldb:
+    image: mysql:5.7
+    networks:
+      - factory
+    container_name: mysql-container-factory
+    working_dir: /application
     volumes:
-      - db-data:/var/lib/postgresql/data:rw
-      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
-      # - ./docker/db/data:/var/lib/postgresql/data:rw
-###< doctrine/doctrine-bundle ###
+      - .:/application
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=factory_app
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
+    ports:
+      - "3306:3306"
 
-volumes:
-###> doctrine/doctrine-bundle ###
-  db-data:
-###< doctrine/doctrine-bundle ###
+  nginx:
+    image: nginx:alpine
+    networks:
+      - factory
+    container_name: nginx-factory
+    working_dir: /application
+    volumes:
+      - .:/application
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+
+  php-fpm:
+    build: docker/php
+    networks:
+      - factory
+    container_name: php-factory
+    working_dir: /application
+    volumes:
+      - .:/application
+      - ./docker/php/php.ini:/etc/php/7.4/fpm/conf.d/99-overrides.ini
+
+  node:
+    build: docker/node
+    container_name: node-factory
+    networks:
+      - factory
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/application
+    working_dir: /application
+    tty: true
+    stdin_open: true
