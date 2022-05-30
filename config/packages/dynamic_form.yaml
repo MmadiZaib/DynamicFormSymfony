@@ -1,0 +1,6 @@
+dynamic_form:
+  user_form:
+    email:
+      enabled: true
+      type: 'Symfony\Component\Form\Extension\Core\Type\EmailType'
+
